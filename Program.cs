@@ -355,40 +355,8 @@ async Task<IResult> GetCategories(int page, int pageSize, AppDbContext db)
     return Results.Ok(result);
 }
 
-// ===================== MODELS =====================
-class User
-{
-    public int Id { get; set; }
-    public string Email { get; set; }
-}
-
-class Category
-{
-    public int Id { get; set; }
-    public string Name { get; set; }
-}
-
-class Product
-{
-    public int Id { get; set; }
-    public string Name { get; set; }
-    public decimal Price { get; set; }
-
-    public int CategoryId { get; set; }
-    public Category Category { get; set; }
-}
-
-class Order
-{
-    public int Id { get; set; }
-    public DateTime OrderDate { get; set; }
-
-    public int UserId { get; set; }
-    public User User { get; set; }
-}
-
 // ===================== DB CONTEXT =====================
-class AppDbContext : DbContext
+public class AppDbContext : DbContext
 {
     public AppDbContext(DbContextOptions<AppDbContext> options)
         : base(options) { }
