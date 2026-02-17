@@ -1,13 +1,13 @@
 # OnlineShopAPI – Programmēšana II projekts
 
-## 📌 Projekta apraksts
+##  Projekta apraksts
 Šis projekts ir izstrādāts kursa **Programmēšana II** ietvaros. Projekta mērķis ir izveidot REST API, izmantojot **ASP.NET Core**, **Entity Framework**, **Swagger** un **JWT autentifikāciju**.
 
 API nodrošina vienkāršu Eveikala funkcionalitāti – preču, kategoriju un pasūtījumu pārvaldību, kā arī lietotāju autentifikāciju.
 
 ---
 
-## 🛠️ Izmantotās tehnoloģijas
+##   Izmantotās tehnoloģijas
 - ASP.NET Core Web API  
 - Entity Framework Core  
 - SQLite datubāze  
@@ -16,7 +16,7 @@ API nodrošina vienkāršu Eveikala funkcionalitāti – preču, kategoriju un p
 
 ---
 
-## 🗄️ Datu bāzes struktūra
+##  Datu bāzes struktūra
 Projektā tiek izmantota relāciju datubāze ar **4 tabulām**:
 
 | Tabula     | Apraksts |
@@ -30,25 +30,25 @@ Tabulas ir savienotas ar **ārējām atslēgām (Foreign Keys)**, izmantojot Ent
 
 ---
 
-## 🌐 API Endpointi
+##  API Endpointi
 
-### 🔹 Products
+###  Products
 - `GET /api/products` – atgriež visu preču sarakstu  
 - `POST /api/products` – pievieno jaunu preci  
 
-### 🔹 Categories
+###  Categories
 - `GET /api/categories` – atgriež visas kategorijas  
 - `POST /api/categories` – pievieno jaunu kategoriju  
 
-### 🔹 Orders (aizsargāts ar JWT)
+###  Orders (aizsargāts ar JWT)
 - `GET /api/orders` – atgriež visus pasūtījumus (pieejams tikai ar tokenu)
 
-### 🔹 Authentication
+###  Authentication
 - `POST /api/auth/login` – izveido JWT tokenu lietotājam
 
 ---
 
-## 🔐 JWT Autentifikācija
+##  JWT Autentifikācija
 JWT (JSON Web Token) tiek izmantots, lai aizsargātu API endpointus.
 
 Tokena darbības princips:
@@ -59,7 +59,7 @@ Tokena darbības princips:
 
 ---
 
-## 📘 Swagger
+##  Swagger
 Swagger ir integrēts projektā un pieejams pēc API palaišanas:
 
 
@@ -71,7 +71,7 @@ Swagger piedāvā:
 
 ---
 
-## ▶️ Kā palaist projektu
+##  Kā palaist projektu
 1. Klonē repozitoriju:
 2. Atver projektu Visual Studio
 3. Palaid projektu (`Run`)
@@ -79,23 +79,23 @@ Swagger piedāvā:
 
 ---
 
-## 🎥 Prezentācija
+##  Prezentācija
 Projekta noslēgumā tika sagatavota video prezentācija, kurā:
 - parādīta API darbība
 - demonstrēta datubāze un Swagger
 - izskaidrota JWT autentifikācija
 - aprakstīta koda struktūra un izmantotās tehnoloģijas
 
-👉 **Video saite:** (pievienot šeit)
+ **Video saite:** (pievienot šeit)
 
 ---
 
-## 👥 Komanda
+##  Komanda
 - Komandas vadītājs: _(Kristers, Zujevs)_
 
 ---
 
-## ✅ Secinājumi
+##  Secinājumi
 Šis projekts palīdzēja apgūt:
 - REST API pamatus
 - darbu ar Entity Framework
