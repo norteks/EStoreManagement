@@ -9,6 +9,8 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using BCrypt.Net;
 using EStoreManagementAPI;
+using System.IO;
+using Microsoft.AspNetCore.DataProtection;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -33,6 +35,24 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 });
 
 builder.Services.AddAuthorization();
+
+// Data Protection: persist keys to disk and protect with DPAPI on Windows
+var keysFolder = Path.Combine(builder.Environment.ContentRootPath, "DataProtection-Keys");
+Directory.CreateDirectory(keysFolder);
+var dpBuilder = builder.Services.AddDataProtection()
+    .PersistKeysToFileSystem(new DirectoryInfo(keysFolder))
+    .SetApplicationName("EStoreManagementAPI");
+
+// Call ProtectKeysWithDpapi only on Windows. Use reflection to avoid CA1416 analyzer.
+if (OperatingSystem.IsWindows())
+{
+    var extType = Type.GetType("Microsoft.AspNetCore.DataProtection.DataProtectionBuilderExtensions, Microsoft.AspNetCore.DataProtection");
+    var protectMethod = extType?.GetMethod("ProtectKeysWithDpapi", new[] { typeof(Microsoft.AspNetCore.DataProtection.IDataProtectionBuilder) });
+    if (protectMethod != null)
+    {
+        protectMethod.Invoke(null, new object[] { dpBuilder });
+    }
+}
 
 // ===================== CORS =====================
 builder.Services.AddCors(options =>
