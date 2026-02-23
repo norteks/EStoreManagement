@@ -1,128 +1,165 @@
-# EStoreManagementAPI
+EStoreManagementAPI
 
-A modern ASP.NET Core 7 REST API for e-store management with JWT authentication, SQLite database, and Swagger documentation.
 
-## Features
 
-- **REST API** with full CRUD operations for products and categories
-- **JWT Authentication** for secure order management
-- **SQLite Database** with Entity Framework Core
-- **Swagger/OpenAPI** documentation with interactive UI
-- **Migrations** for database schema management
-- **Docker Support** for containerized deployment
-- **Input Validation** on all endpoints
-- **Error Handling** with descriptive responses
 
-## Prerequisites
 
-- .NET 7 SDK ([download](https://dotnet.microsoft.com/en-us/download/dotnet/7.0))
-- Docker (optional, for containerized deployment)
 
-## Quick Start
+ASP.NET Core 7 Web API for E-Store Management. Secure REST API with JWT authentication, SQLite database, and Swagger documentation.
 
-### Local Development
+Features
 
-1. **Navigate to project:**
-   ```bash
-   cd c:\Users\Lietotajs\Documents\GitHub\EStoreManagementAPI
-   ```
+Full CRUD operations for products and categories
 
-2. **Build project:**
-   ```bash
-   dotnet build
-   ```
+JWT Authentication for secure access (login + protected routes)
 
-3. **Apply database migrations:**
-   ```bash
-   dotnet ef database update
-   ```
+SQLite database with EF Core migrations
 
-4. **Run the server:**
-   ```bash
-   dotnet run --urls http://localhost:5000
-   ```
+Swagger/OpenAPI UI for interactive API documentation
 
-5. **Access Swagger UI:**
-   - Browser: http://localhost:5000/swagger
-   - API Root: http://localhost:5000
-   - Health: http://localhost:5000/health
+Docker support for containerized deployment
 
-### Docker Deployment
+Input validation and descriptive error responses
 
-1. **Build Docker image:**
-   ```bash
-   docker build -t estoreapi:latest .
-   ```
+Prerequisites
 
-2. **Run with docker-compose:**
-   ```bash
-   docker-compose up -d
-   ```
+.NET 7 SDK
 
-3. **Access containerized API:**
-   - Swagger: http://localhost:8080/swagger
-   - Health: http://localhost:8080/health
+Docker (optional)
 
-## API Documentation
+Getting Started
+Local Development
 
-### Products Endpoints
+Clone the repository
 
-| Method | Endpoint | Description | Auth |
-|--------|----------|-------------|------|
-| GET | `/api/products` | Get all products | No |
-| GET | `/api/products/{id}` | Get product by ID | No |
-| POST | `/api/products` | Create new product | No |
-| PUT | `/api/products/{id}` | Update product | No |
-| DELETE | `/api/products/{id}` | Delete product | No |
+git clone https://github.com/Kristersssssss/EStoreManagementAPI.git
+cd EStoreManagementAPI
 
-**Request Example (POST):**
-```json
+Build the project
+
+dotnet build
+
+Apply database migrations
+
+dotnet ef database update
+
+Run the API
+
+dotnet run --urls http://localhost:5000
+
+Access endpoints:
+
+Swagger UI: http://localhost:5000/swagger
+
+API Root: http://localhost:5000
+
+Health Check: http://localhost:5000/health
+
+Docker Deployment
+
+Build the Docker image:
+
+docker build -t estoreapi .
+
+Start with Docker Compose:
+
+docker-compose up -d
+
+Access endpoints:
+
+Swagger UI: http://localhost:8080/swagger
+
+API Root: http://localhost:8080
+
+API Endpoints
+Products
+Method	Endpoint	Auth	Description
+GET	/api/products	No	Get all products
+GET	/api/products/{id}	No	Get product by ID
+POST	/api/products	Yes	Create product
+PUT	/api/products/{id}	Yes	Update product
+DELETE	/api/products/{id}	Yes	Delete product
+Categories
+Method	Endpoint	Auth	Description
+GET	/api/categories	No	Get all categories
+GET	/api/categories/{id}	No	Get category by ID
+POST	/api/categories	Yes	Create category
+PUT	/api/categories/{id}	Yes	Update category
+DELETE	/api/categories/{id}	Yes	Delete category
+Orders (JWT Required)
+Method	Endpoint	Description
+GET	/api/orders	Get all orders
+POST	/api/orders	Create an order
+Authentication
+Method	Endpoint	Description
+POST	/api/auth/login	Authenticate user and issue JWT
+Quick Start Example
+1. Authenticate and get JWT Token
+curl -X POST http://localhost:5000/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"user@example.com","password":"YourPassword"}'
+
+Response Example:
+
 {
-  "name": "Laptop",
-  "price": 999.99,
-  "categoryId": 1
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
 }
-```
 
-### Categories Endpoints
+Save the token for authorized requests.
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/api/categories` | Get all categories |
-| GET | `/api/categories/{id}` | Get category by ID |
-| POST | `/api/categories` | Create new category |
-| PUT | `/api/categories/{id}` | Update category |
-| DELETE | `/api/categories/{id}` | Delete category |
+2. Get All Products (No Auth Required)
+curl http://localhost:5000/api/products
 
-### Orders Endpoints (JWT Required)
+Response Example:
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/api/orders` | Get all orders |
-| POST | `/api/orders` | Create new order |
+[
+  { "id": 1, "name": "Laptop", "price": 1200, "categoryId": 2 },
+  { "id": 2, "name": "Mouse", "price": 25, "categoryId": 3 }
+]
+3. Create a New Product (JWT Required)
+curl -X POST http://localhost:5000/api/products \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  -d '{"name":"Keyboard","price":45,"categoryId":3}'
+4. Update a Product (JWT Required)
+curl -X PUT http://localhost:5000/api/products/3 \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  -d '{"name":"Mechanical Keyboard","price":55,"categoryId":3}'
+5. Delete a Product (JWT Required)
+curl -X DELETE http://localhost:5000/api/products/3 \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN"
+Project Structure
+├── Program.cs                  # App entry & endpoint config
+├── EStoreManagementAPI.csproj  # Project file
+├── Migrations/                 # EF Core migrations
+├── shop.db                     # SQLite database (auto-generated)
+├── Dockerfile                  # Container image definition
+├── docker-compose.yml          # Docker compose file
+└── README.md                   # (This file)
+Database Schema
 
-### Authentication
+Users: Id, Email
 
-| Method | Endpoint |
-|--------|----------|
-| POST | `/api/auth/login` |
+Categories: Id, Name
 
-## Project Structure
+Products: Id, Name, Price, CategoryId (FK)
 
-```
-.
-├── Program.cs              # Main application, endpoints, configuration
-├── EStoreManagementAPI.csproj  # Project dependencies
-├── Migrations/             # EF Core database migrations
-├── shop.db                 # SQLite database (generated)
-├── Dockerfile              # Docker image definition
-├── docker-compose.yml      # Docker Compose orchestration
-└── README.md              # This file
-```
+Orders: Id, OrderDate, UserId (FK)
 
-## Database Schema
+Recommendations
 
-- **Users:** Id, Email
-- **Categories:** Id, Name
-- **Products:** Id, Name, Price, CategoryId (FK)
-- **Orders:** Id, OrderDate, UserId (FK)
+Role-based authorization (e.g., admin vs user)
+
+Unit & integration tests
+
+API rate limiting & logging
+
+CI/CD workflow (GitHub Actions / Azure DevOps)
+
+Postman collection or client examples
+
+License
+
+This project is open source. See LICENSE
+ for details.
