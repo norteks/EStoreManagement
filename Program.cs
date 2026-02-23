@@ -6,6 +6,7 @@ using Microsoft.OpenApi.Models;
 using System.Text;
 using System.Linq;
 using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
 using EStoreManagementAPI;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -15,15 +16,15 @@ builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlite("Data Source=shop.db"));
 
 // ===================== JWT =====================
-var key = "SUPER_SECRET_KEY_12345";
+var key = builder.Configuration["Jwt:Key"] ?? Environment.GetEnvironmentVariable("JWT_KEY") ?? "SUPER_SECRET_KEY_12345";
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 .AddJwtBearer(options =>
 {
     options.TokenValidationParameters = new TokenValidationParameters
     {
-        ValidateIssuer = false,
-        ValidateAudience = false,
+        ValidateIssuer = bool.TryParse(builder.Configuration["Jwt:ValidateIssuer"], out var vi) ? vi : false,
+        ValidateAudience = bool.TryParse(builder.Configuration["Jwt:ValidateAudience"], out var va) ? va : false,
         ValidateLifetime = true,
         IssuerSigningKey = new SymmetricSecurityKey(
             Encoding.UTF8.GetBytes(key))
@@ -243,11 +244,39 @@ app.MapPost("/api/orders",
 });
 
 // -------- AUTH --------
-app.MapPost("/api/auth/login", () =>
+record LoginRequest(string Email);
+
+app.MapPost("/api/auth/register", async (User user, AppDbContext db) =>
 {
-    var tokenHandler = new System.IdentityModel.Tokens.Jwt.JwtSecurityTokenHandler();
+    if (string.IsNullOrWhiteSpace(user.Email))
+        return Results.BadRequest(new { message = "Email is required." });
+
+    if (await db.Users.AnyAsync(u => u.Email == user.Email))
+        return Results.Conflict(new { message = "User already exists." });
+
+    db.Users.Add(user);
+    await db.SaveChangesAsync();
+    return Results.Created($"/api/users/{user.Id}", user);
+});
+
+app.MapPost("/api/auth/login", async (LoginRequest req, AppDbContext db) =>
+{
+    if (string.IsNullOrWhiteSpace(req.Email))
+        return Results.BadRequest(new { message = "Email is required." });
+
+    var user = await db.Users.FirstOrDefaultAsync(u => u.Email == req.Email);
+    if (user == null)
+        return Results.Unauthorized();
+
+    var tokenHandler = new JwtSecurityTokenHandler();
+    var claims = new[] {
+        new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
+        new Claim(JwtRegisteredClaimNames.Email, user.Email)
+    };
+
     var tokenDescriptor = new SecurityTokenDescriptor
     {
+        Subject = new ClaimsIdentity(claims),
         Expires = DateTime.UtcNow.AddHours(1),
         SigningCredentials = new SigningCredentials(
             new SymmetricSecurityKey(Encoding.UTF8.GetBytes(key)),
