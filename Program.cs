@@ -29,7 +29,28 @@ if (keyBytes.Length < 32)
     keyBytes = SHA256.HashData(Encoding.UTF8.GetBytes(key));
 }
 
-// JWT authentication handled manually for endpoints that require it
+// JWT authentication: configure JwtBearer
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+})
+.AddJwtBearer(options =>
+{
+    options.RequireHttpsMetadata = false;
+    options.SaveToken = true;
+    options.TokenValidationParameters = new TokenValidationParameters
+    {
+        ValidateIssuerSigningKey = true,
+        IssuerSigningKey = new SymmetricSecurityKey(keyBytes),
+        ValidateIssuer = false,
+        ValidateAudience = false,
+        ClockSkew = TimeSpan.FromMinutes(5)
+    };
+});
+
+// Add authorization services
+builder.Services.AddAuthorization();
 
 // Data Protection: persist keys to disk and protect with DPAPI on Windows
 var keysFolder = Path.Combine(builder.Environment.ContentRootPath, "DataProtection-Keys");
@@ -122,7 +143,9 @@ app.UseSwaggerUI();
 
 app.UseCors("AllowAll");
 
-// Authentication/Authorization middleware not used because JWT is validated manually
+// Enable authentication/authorization middleware
+app.UseAuthentication();
+app.UseAuthorization();
 
 // ===================== API ENDPOINTS =====================
 
@@ -237,28 +260,14 @@ app.MapDelete("/api/categories/{id}", async (int id, AppDbContext db) =>
     return Results.NoContent();
 });
 
-// -------- ORDERS (JWT) --------
-app.MapGet("/api/orders", async (HttpContext http, AppDbContext db) =>
+// -------- ORDERS (requires authentication) --------
+app.MapGet("/api/orders", async (AppDbContext db) =>
 {
-    var authHeader = http.Request.Headers["Authorization"].FirstOrDefault();
-    if (string.IsNullOrWhiteSpace(authHeader) || !authHeader.StartsWith("Bearer "))
-        return Results.Unauthorized();
-
-    var token = authHeader.Substring("Bearer ".Length).Trim();
-    if (!JwtUtils.ValidateJwt(token, keyBytes)) return Results.Unauthorized();
-
     return Results.Ok(await db.Orders.Include(o => o.User).ToListAsync());
-});
+}).RequireAuthorization();
 
-app.MapPost("/api/orders", async (HttpContext http, Order order, AppDbContext db) =>
+app.MapPost("/api/orders", async (Order order, AppDbContext db) =>
 {
-    var authHeader = http.Request.Headers["Authorization"].FirstOrDefault();
-    if (string.IsNullOrWhiteSpace(authHeader) || !authHeader.StartsWith("Bearer "))
-        return Results.Unauthorized();
-
-    var token = authHeader.Substring("Bearer ".Length).Trim();
-    if (!JwtUtils.ValidateJwt(token, keyBytes)) return Results.Unauthorized();
-
     if (order.UserId <= 0)
         return Results.BadRequest(new { message = "Valid UserId required." });
 
@@ -270,7 +279,7 @@ app.MapPost("/api/orders", async (HttpContext http, Order order, AppDbContext db
     db.Orders.Add(order);
     await db.SaveChangesAsync();
     return Results.Created($"/api/orders/{order.Id}", order);
-});
+}).RequireAuthorization();
 
 app.MapPost("/api/auth/register", async (AuthRequest req, AppDbContext db) =>
 {
@@ -361,44 +370,6 @@ app.MapGet("/api/products/by-category/{categoryId}", async (int categoryId, AppD
         return Results.NotFound(new { message = "No products found in this category." });
 
     return Results.Ok(products);
-});
-
-// DEBUG: validate JWT using the same simple logic
-app.MapGet("/debug/validate", (string token) =>
-{
-    bool ValidateJwtSimpleLocal(string t)
-    {
-        try
-        {
-            var parts = t.Split('.');
-            if (parts.Length != 3) return false;
-            var signingInput = parts[0] + "." + parts[1];
-            var sig = parts[2];
-
-            byte[] hash;
-            using (var hmac = new HMACSHA256(keyBytes))
-            {
-                hash = hmac.ComputeHash(Encoding.UTF8.GetBytes(signingInput));
-            }
-
-            string computed = Convert.ToBase64String(hash).TrimEnd('=').Replace('+', '-').Replace('/', '_');
-            if (!string.Equals(computed, sig, StringComparison.Ordinal)) return false;
-
-            var payloadJson = Encoding.UTF8.GetString(Convert.FromBase64String(parts[1].PadRight(parts[1].Length + (4 - parts[1].Length % 4) % 4, '=').Replace('-', '+').Replace('_', '/')));
-            using var doc = System.Text.Json.JsonDocument.Parse(payloadJson);
-            if (doc.RootElement.TryGetProperty("exp", out var expEl) && expEl.ValueKind == System.Text.Json.JsonValueKind.Number)
-            {
-                var exp = expEl.GetInt64();
-                var now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
-                if (now >= exp) return false;
-            }
-
-            return true;
-        }
-        catch { return false; }
-    }
-
-    return Results.Ok(new { valid = ValidateJwtSimpleLocal(token) });
 });
 
 app.Run();

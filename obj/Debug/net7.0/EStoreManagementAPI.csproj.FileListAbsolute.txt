@@ -12,7 +12,6 @@ C:\Users\Lietotajs\Documents\GitHub\EStoreManagementAPI\bin\Debug\net7.0\Microso
 C:\Users\Lietotajs\Documents\GitHub\EStoreManagementAPI\bin\Debug\net7.0\Microsoft.EntityFrameworkCore.Relational.dll
 C:\Users\Lietotajs\Documents\GitHub\EStoreManagementAPI\bin\Debug\net7.0\Microsoft.EntityFrameworkCore.Sqlite.dll
 C:\Users\Lietotajs\Documents\GitHub\EStoreManagementAPI\bin\Debug\net7.0\Microsoft.Extensions.DependencyModel.dll
-C:\Users\Lietotajs\Documents\GitHub\EStoreManagementAPI\bin\Debug\net7.0\Microsoft.IdentityModel.Abstractions.dll
 C:\Users\Lietotajs\Documents\GitHub\EStoreManagementAPI\bin\Debug\net7.0\Microsoft.IdentityModel.JsonWebTokens.dll
 C:\Users\Lietotajs\Documents\GitHub\EStoreManagementAPI\bin\Debug\net7.0\Microsoft.IdentityModel.Logging.dll
 C:\Users\Lietotajs\Documents\GitHub\EStoreManagementAPI\bin\Debug\net7.0\Microsoft.IdentityModel.Protocols.dll
