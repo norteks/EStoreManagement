@@ -120,7 +120,7 @@ app.MapGet("/api/products/search/{query}", async (string query, AppDbContext db)
 
     var results = await db.Products
         .Include(p => p.Category)
-        .Where(p => p.Name.Contains(query) || p.Category.Name.Contains(query))
+        .Where(p => p.Name.Contains(query) || (p.Category != null && p.Category!.Name.Contains(query)))
         .Take(20)
         .ToListAsync();
 

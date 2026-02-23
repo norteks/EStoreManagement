@@ -10,18 +10,17 @@ RUN dotnet restore
 # Copy source code
 COPY . ./
 
-# Build application
-RUN dotnet build -c Release -o /app/build
+# Publish application during build stage so publish output is available
+# Build & publish to /app/publish in the build stage
+RUN dotnet publish -c Release -o /app/publish
 
 # Publish stage
 FROM mcr.microsoft.com/dotnet/sdk:7.0 AS publish
 
 WORKDIR /app
 
-COPY --from=build /app/build ./
-
-# Apply migrations and publish
-RUN dotnet publish -c Release -o /app/publish
+# Copy already-published output from build stage
+COPY --from=build /app/publish ./
 
 # Runtime stage
 FROM mcr.microsoft.com/dotnet/aspnet:7.0 AS runtime
