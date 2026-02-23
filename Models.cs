@@ -1,47 +1,54 @@
-namespace EStoreManagementAPI;
+// Models.cs
 
-public class User
+using System.ComponentModel.DataAnnotations;
+
+namespace EStoreManagement.Models
 {
-    public int Id { get; set; }
-    public required string Email { get; set; } = string.Empty;
-    public string? PasswordHash { get; set; }
+    public class Product
+    {
+        [Key]
+        public int Id { get; set; }
+
+        [Required]
+        [StringLength(100)]
+        public string Name { get; set; }
+
+        [Required]
+        [Range(0.01, 9999.99)]
+        public decimal Price { get; set; }
+
+        [Required]
+        public string Description { get; set; }
+
+        public int Stock { get; set; }
+    }
+
+    public class Customer
+    {
+        [Key]
+        public int Id { get; set; }
+
+        [Required]
+        [StringLength(100)]
+        public string FullName { get; set; }
+
+        [Required]
+        [EmailAddress]
+        public string Email { get; set; }
+    }
+
+    public class Order
+    {
+        [Key]
+        public int Id { get; set; }
+
+        [Required]
+        public int CustomerId { get; set; }
+
+        [Required]
+        public IList<Product> Products { get; set; }
+
+        [Required]
+        public DateTime OrderDate { get; set; }
+    }
 }
-
-public class Category
-{
-    public int Id { get; set; }
-    public required string Name { get; set; } = string.Empty;
-}
-
-public class Product
-{
-    public int Id { get; set; }
-    public required string Name { get; set; } = string.Empty;
-    public decimal Price { get; set; }
-
-    public int CategoryId { get; set; }
-    public Category? Category { get; set; }
-}
-
-public class Order
-{
-    public int Id { get; set; }
-    public DateTime OrderDate { get; set; }
-
-    public int UserId { get; set; }
-    public User? User { get; set; }
-}
-
-public class PagedResult<T>
-{
-    public List<T> Items { get; set; } = new();
-    public int TotalCount { get; set; }
-    public int Page { get; set; }
-    public int PageSize { get; set; }
-
-    public int TotalPages => (TotalCount + PageSize - 1) / PageSize;
-    public bool HasNextPage => Page < TotalPages;
-    public bool HasPreviousPage => Page > 1;
-}
-
-public record AuthRequest(string Email, string Password);
