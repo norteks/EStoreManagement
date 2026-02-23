@@ -1,59 +1,6 @@
-# Build results
-bin/
-obj/
-Debug/
-Release/
-*.exe
-*.dll
-*.pdb
+.gitignore
 
-# Entity Framework
-*.db
-*.db-shm
-*.db-wal
-
-# Visual Studio
-.vs/
-.vscode/
-*.sln.DotSettings
-*.user
-*.suo
-
-# ReSharper
-.idea/
-*.sln.iml
-
-# User-specific files
-launchSettings.json
-
-# Dependencies
-node_modules/
-packages/
-
-# Environment files
-.env
-.env.local
-.env.*.local
-
-# Logs
-*.log
-logs/
-
-# OS files
-.DS_Store
-Thumbs.db
-
-# IDE
-.idea/
-*.swp
-*.swo
-*~
-
-# Build artifacts
-dist/
-build/
-.gradle/
-target/
-
-# Docker
-docker-compose.override.yml
+# Ignore sensitive files
+shop.db
+local.db
+appsettings.Local.json
