@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using System.Text;
+using System.Security.Cryptography;
 using System.Linq;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
@@ -21,20 +22,14 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 // ===================== JWT =====================
 var key = builder.Configuration["Jwt:Key"] ?? Environment.GetEnvironmentVariable("JWT_KEY") ?? "SUPER_SECRET_KEY_12345";
 
-builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-.AddJwtBearer(options =>
+// Ensure signing key is at least 256 bits. If configured key is shorter, use its SHA256 hash.
+var keyBytes = Encoding.UTF8.GetBytes(key);
+if (keyBytes.Length < 32)
 {
-    options.TokenValidationParameters = new TokenValidationParameters
-    {
-        ValidateIssuer = bool.TryParse(builder.Configuration["Jwt:ValidateIssuer"], out var vi) ? vi : false,
-        ValidateAudience = bool.TryParse(builder.Configuration["Jwt:ValidateAudience"], out var va) ? va : false,
-        ValidateLifetime = true,
-        IssuerSigningKey = new SymmetricSecurityKey(
-            Encoding.UTF8.GetBytes(key))
-    };
-});
+    keyBytes = SHA256.HashData(Encoding.UTF8.GetBytes(key));
+}
 
-builder.Services.AddAuthorization();
+// JWT authentication handled manually for endpoints that require it
 
 // Data Protection: persist keys to disk and protect with DPAPI on Windows
 var keysFolder = Path.Combine(builder.Environment.ContentRootPath, "DataProtection-Keys");
@@ -127,8 +122,7 @@ app.UseSwaggerUI();
 
 app.UseCors("AllowAll");
 
-app.UseAuthentication();
-app.UseAuthorization();
+// Authentication/Authorization middleware not used because JWT is validated manually
 
 // ===================== API ENDPOINTS =====================
 
@@ -244,20 +238,34 @@ app.MapDelete("/api/categories/{id}", async (int id, AppDbContext db) =>
 });
 
 // -------- ORDERS (JWT) --------
-app.MapGet("/api/orders",
-    [Authorize] async (AppDbContext db) =>
-        await db.Orders.Include(o => o.User).ToListAsync());
-
-app.MapPost("/api/orders",
-    [Authorize] async (Order order, AppDbContext db) =>
+app.MapGet("/api/orders", async (HttpContext http, AppDbContext db) =>
 {
+    var authHeader = http.Request.Headers["Authorization"].FirstOrDefault();
+    if (string.IsNullOrWhiteSpace(authHeader) || !authHeader.StartsWith("Bearer "))
+        return Results.Unauthorized();
+
+    var token = authHeader.Substring("Bearer ".Length).Trim();
+    if (!JwtUtils.ValidateJwt(token, keyBytes)) return Results.Unauthorized();
+
+    return Results.Ok(await db.Orders.Include(o => o.User).ToListAsync());
+});
+
+app.MapPost("/api/orders", async (HttpContext http, Order order, AppDbContext db) =>
+{
+    var authHeader = http.Request.Headers["Authorization"].FirstOrDefault();
+    if (string.IsNullOrWhiteSpace(authHeader) || !authHeader.StartsWith("Bearer "))
+        return Results.Unauthorized();
+
+    var token = authHeader.Substring("Bearer ".Length).Trim();
+    if (!JwtUtils.ValidateJwt(token, keyBytes)) return Results.Unauthorized();
+
     if (order.UserId <= 0)
         return Results.BadRequest(new { message = "Valid UserId required." });
-    
+
     var user = await db.Users.FindAsync(order.UserId);
     if (user == null)
         return Results.NotFound(new { message = "User not found." });
-    
+
     order.OrderDate = DateTime.UtcNow;
     db.Orders.Add(order);
     await db.SaveChangesAsync();
@@ -298,7 +306,7 @@ app.MapPost("/api/auth/login", async (AuthRequest req, AppDbContext db) =>
         Subject = new ClaimsIdentity(claims),
         Expires = DateTime.UtcNow.AddHours(1),
         SigningCredentials = new SigningCredentials(
-            new SymmetricSecurityKey(Encoding.UTF8.GetBytes(key)),
+            new SymmetricSecurityKey(keyBytes),
             SecurityAlgorithms.HmacSha256Signature)
     };
 
@@ -353,6 +361,44 @@ app.MapGet("/api/products/by-category/{categoryId}", async (int categoryId, AppD
         return Results.NotFound(new { message = "No products found in this category." });
 
     return Results.Ok(products);
+});
+
+// DEBUG: validate JWT using the same simple logic
+app.MapGet("/debug/validate", (string token) =>
+{
+    bool ValidateJwtSimpleLocal(string t)
+    {
+        try
+        {
+            var parts = t.Split('.');
+            if (parts.Length != 3) return false;
+            var signingInput = parts[0] + "." + parts[1];
+            var sig = parts[2];
+
+            byte[] hash;
+            using (var hmac = new HMACSHA256(keyBytes))
+            {
+                hash = hmac.ComputeHash(Encoding.UTF8.GetBytes(signingInput));
+            }
+
+            string computed = Convert.ToBase64String(hash).TrimEnd('=').Replace('+', '-').Replace('/', '_');
+            if (!string.Equals(computed, sig, StringComparison.Ordinal)) return false;
+
+            var payloadJson = Encoding.UTF8.GetString(Convert.FromBase64String(parts[1].PadRight(parts[1].Length + (4 - parts[1].Length % 4) % 4, '=').Replace('-', '+').Replace('_', '/')));
+            using var doc = System.Text.Json.JsonDocument.Parse(payloadJson);
+            if (doc.RootElement.TryGetProperty("exp", out var expEl) && expEl.ValueKind == System.Text.Json.JsonValueKind.Number)
+            {
+                var exp = expEl.GetInt64();
+                var now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+                if (now >= exp) return false;
+            }
+
+            return true;
+        }
+        catch { return false; }
+    }
+
+    return Results.Ok(new { valid = ValidateJwtSimpleLocal(token) });
 });
 
 app.Run();
